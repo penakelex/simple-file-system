@@ -1,4 +1,5 @@
 #include "fs/disk.h"
+#include "fs/config.h"
 #include "fs/platform_io.h"
 #include <stdio.h>
 #include <stdlib.h>

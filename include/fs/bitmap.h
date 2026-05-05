@@ -1,7 +1,6 @@
 #pragma once
 
 #include "fs/disk.h"
-#include <stddef.h>
 #include <stdint.h>
 
 typedef struct fs_bitmap fs_bitmap_t;

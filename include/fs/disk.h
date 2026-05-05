@@ -4,9 +4,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-
-#define FS_CLUSTER_SIZE 4096
-
 typedef enum [[nodiscard]] {
   FS_STATUS_OK = 0,
   FS_STATUS_ERROR_FILE_ACCESS,
