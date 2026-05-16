@@ -1,0 +1,41 @@
+---
+BasedOnStyle: LLVM
+
+# ===== Ограничение длины строки =====
+ColumnLimit: 60
+
+# ===== Отступы =====
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+ContinuationIndentWidth: 2
+
+# ===== Скобки =====
+BreakBeforeBraces: Attach
+AllowShortFunctionsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+
+# ===== Переносы строк =====
+BinPackArguments: false
+BinPackParameters: false
+BreakBeforeTernaryOperators: true
+
+# ===== Выравнивание =====
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+
+# ===== Пробелы =====
+SpaceAfterCStyleCast: false
+SpaceBeforeAssignmentOperators: true
+
+# ===== Прочее =====
+CompactNamespaces: false
+SortIncludes: true
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+# ===== Принудительные переносы =====
+BreakBeforeBinaryOperators: NonAssignment
+PenaltyBreakBeforeFirstCallParameter: 1
+PenaltyExcessCharacter: 1000000
