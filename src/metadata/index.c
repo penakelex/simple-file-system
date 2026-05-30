@@ -1,4 +1,4 @@
-#include "fs/index.h"
+#include "fs/metadata/index.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -184,7 +184,7 @@ fs_index_flush(fs_index_t* index_context) {
     return FS_STATUS_ERROR_INVALID_ARGUMENT;
   }
 
-  if (index_context->is_dirty == false) {
+  if (!index_context->is_dirty) {
     return FS_STATUS_OK;
   }
 

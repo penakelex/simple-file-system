@@ -1,7 +1,7 @@
-#include "fs/format.h"
-#include "fs/bitmap.h"
-#include "fs/index.h"
-#include "fs/superblock.h"
+#include "fs/storage/format.h"
+#include "fs/metadata/index.h"
+#include "fs/space/bitmap.h"
+#include "fs/storage/superblock.h"
 #include "fs/types.h"
 #include <stdlib.h>
 

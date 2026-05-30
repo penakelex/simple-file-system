@@ -1,4 +1,4 @@
-#include "fs/bitmap.h"
+#include "fs/space/bitmap.h"
 #include "fs/config.h"
 #include <stdlib.h>
 #include <string.h>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "fs/disk.h"
+#include "fs/storage/disk.h"
 #include <stdint.h>
 
 typedef struct fs_format_context fs_format_context_t;

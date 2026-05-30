@@ -1,5 +1,5 @@
 #pragma once
-#include "fs/disk.h"
+#include "fs/storage/disk.h"
 #include "fs/types.h"
 #include <stdint.h>
 

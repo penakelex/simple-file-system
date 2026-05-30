@@ -1,6 +1,6 @@
 #pragma once
 
-#include "fs/disk.h"
+#include "fs/storage/disk.h"
 #include "fs/types.h"
 
 [[nodiscard]] fs_status_t

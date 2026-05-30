@@ -1,8 +1,8 @@
 #pragma once
 
-#include "fs/bitmap.h"
-#include "fs/disk.h"
-#include "fs/index.h"
+#include "fs/space/bitmap.h"
+#include "fs/storage/disk.h"
+#include "fs/metadata/index.h"
 #include <stdint.h>
 
 typedef struct fs_alloc_context fs_alloc_context_t;

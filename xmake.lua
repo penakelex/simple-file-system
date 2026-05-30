@@ -12,7 +12,7 @@ end
 
 target("simple-file-system")
     set_kind("binary")
-    add_files("src/*.c")
+    add_files("src/**.c")
     add_files("cli/*.c")
 
 target("fs-seek-test")

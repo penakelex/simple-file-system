@@ -1,7 +1,7 @@
 #pragma once
 
-#include "fs/alloc.h"
-#include "fs/index.h"
+#include "fs/alloc/alloc.h"
+#include "fs/metadata/index.h"
 #include "fs/types.h"
 #include <stdint.h>
 
