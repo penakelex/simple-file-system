@@ -1,4 +1,5 @@
 #include "fs/vfs/internal.h"
+#include <stdio.h>
 #include <string.h>
 
 [[nodiscard]] static fs_status_t

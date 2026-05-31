@@ -1,4 +1,6 @@
 #include "fs/storage/format.h"
+#include "fs/alloc/alloc.h"
+#include "fs/logical/dir.h"
 #include "fs/metadata/index.h"
 #include "fs/space/bitmap.h"
 #include "fs/storage/superblock.h"
@@ -62,27 +64,22 @@ fs_format_initialize_disk(fs_disk_t* disk_context,
   fs_superblock_t superblock = {0};
   fs_status_t status = fs_superblock_initialize(
     &superblock, total_cluster_count);
-  if (status != FS_STATUS_OK) {
+  if (status != FS_STATUS_OK)
     return status;
-  }
 
   status =
     fs_superblock_write_to_disk(disk_context, &superblock);
-  if (status != FS_STATUS_OK) {
+  if (status != FS_STATUS_OK)
     return status;
-  }
 
   fs_bitmap_t* bitmap_context = nullptr;
   status =
     fs_bitmap_create(&bitmap_context, total_cluster_count);
-
-  if (status != FS_STATUS_OK) {
+  if (status != FS_STATUS_OK)
     return status;
-  }
 
   status = fs_bitmap_mark_cluster_used(
     bitmap_context, FS_SUPERBLOCK_CLUSTER_INDEX);
-
   if (status != FS_STATUS_OK) {
     (void)fs_bitmap_destroy(bitmap_context);
     return status;
@@ -94,7 +91,6 @@ fs_format_initialize_disk(fs_disk_t* disk_context,
   const uint32_t bitmap_cluster_count =
     (uint32_t)((bitmap_byte_length + cluster_size - 1)
                / cluster_size);
-
   for (uint32_t cluster_index =
          FS_BITMAP_START_CLUSTER_INDEX;
        cluster_index < FS_BITMAP_START_CLUSTER_INDEX
@@ -102,88 +98,102 @@ fs_format_initialize_disk(fs_disk_t* disk_context,
        ++cluster_index) {
     status = fs_bitmap_mark_cluster_used(bitmap_context,
                                          cluster_index);
-
     if (status != FS_STATUS_OK) {
       (void)fs_bitmap_destroy(bitmap_context);
       return status;
     }
   }
 
-  status = fs_bitmap_serialize_to_disk(bitmap_context,
-                                       disk_context);
-
-  if (status != FS_STATUS_OK) {
-    (void)fs_bitmap_destroy(bitmap_context);
-    return status;
+  for (uint32_t cluster_index =
+         superblock.inode_table_start_cluster;
+       cluster_index
+       < superblock.inode_table_start_cluster
+           + superblock.inode_table_size_clusters;
+       ++cluster_index) {
+    status = fs_bitmap_mark_cluster_used(bitmap_context,
+                                         cluster_index);
+    if (status != FS_STATUS_OK) {
+      (void)fs_bitmap_destroy(bitmap_context);
+      return status;
+    }
   }
 
   fs_index_t* index_context = nullptr;
   status = fs_index_create(
     &index_context, disk_context, &superblock);
-
   if (status != FS_STATUS_OK) {
     (void)fs_bitmap_destroy(bitmap_context);
     return status;
   }
 
-  fs_inode_t bitmap_inode = {0};
-  bitmap_inode.id = FS_BITMAP_INODE_ID;
-  bitmap_inode.type = FS_TYPE_REGULAR;
-  bitmap_inode.is_used = true;
+  fs_inode_t bitmap_inode = {.id = FS_BITMAP_INODE_ID,
+                             .type = FS_TYPE_REGULAR,
+                             .is_used = true};
   status =
     fs_index_write_inode(index_context, &bitmap_inode);
+  if (status != FS_STATUS_OK)
+    goto cleanup_index;
 
-  if (status != FS_STATUS_OK) {
-    (void)fs_index_destroy(index_context);
-    (void)fs_bitmap_destroy(bitmap_context);
-    return status;
-  }
-
-  fs_inode_t index_inode = {0};
-  index_inode.id = FS_INDEX_TABLE_INODE_ID;
-  index_inode.type = FS_TYPE_REGULAR;
-  index_inode.is_used = true;
+  fs_inode_t index_inode = {.id = FS_INDEX_TABLE_INODE_ID,
+                            .type = FS_TYPE_REGULAR,
+                            .is_used = true};
   status =
     fs_index_write_inode(index_context, &index_inode);
-
-  if (status != FS_STATUS_OK) {
-    (void)fs_index_destroy(index_context);
-    (void)fs_bitmap_destroy(bitmap_context);
-    return status;
-  }
+  if (status != FS_STATUS_OK)
+    goto cleanup_index;
 
   uint32_t root_inode_id = 0;
   status = fs_index_allocate_inode(
     index_context, FS_TYPE_DIRECTORY, &root_inode_id);
+  if (status != FS_STATUS_OK)
+    goto cleanup_index;
+  superblock.root_inode_id = root_inode_id;
 
+  fs_alloc_context_t* alloc_context = nullptr;
+  status = fs_alloc_create_context(&alloc_context,
+                                   disk_context,
+                                   bitmap_context,
+                                   index_context);
+  if (status != FS_STATUS_OK)
+    goto cleanup_index;
+
+  fs_dir_context_t* dir_context = nullptr;
+  status = fs_dir_create_context(
+    &dir_context, alloc_context, index_context);
   if (status != FS_STATUS_OK) {
-    (void)fs_index_destroy(index_context);
-    (void)fs_bitmap_destroy(bitmap_context);
-    return status;
+    (void)fs_alloc_destroy_context(alloc_context);
+    goto cleanup_index;
   }
 
-  superblock.root_inode_id = root_inode_id;
+  status = fs_dir_create_new(
+    dir_context, root_inode_id, root_inode_id);
+  (void)fs_dir_destroy_context(dir_context);
+  (void)fs_alloc_destroy_context(alloc_context);
+  if (status != FS_STATUS_OK)
+    goto cleanup_index;
+
   status =
     fs_superblock_write_to_disk(disk_context, &superblock);
-
-  if (status != FS_STATUS_OK) {
-    (void)fs_index_destroy(index_context);
-    (void)fs_bitmap_destroy(bitmap_context);
-    return status;
-  }
+  if (status != FS_STATUS_OK)
+    goto cleanup_index;
 
   status = fs_index_flush(index_context);
+  if (status != FS_STATUS_OK)
+    goto cleanup_index;
 
-  if (status != FS_STATUS_OK) {
-    (void)fs_index_destroy(index_context);
-    (void)fs_bitmap_destroy(bitmap_context);
-    return status;
-  }
+  status = fs_bitmap_serialize_to_disk(bitmap_context,
+                                       disk_context);
+  if (status != FS_STATUS_OK)
+    goto cleanup_index;
 
   (void)fs_index_destroy(index_context);
   (void)fs_bitmap_destroy(bitmap_context);
-
   return fs_disk_flush(disk_context);
+
+cleanup_index:
+  (void)fs_index_destroy(index_context);
+  (void)fs_bitmap_destroy(bitmap_context);
+  return status;
 }
 
 [[nodiscard]] fs_status_t

@@ -140,9 +140,7 @@ fs_bitmap_mark_cluster_free(fs_bitmap_t* bitmap_context,
       || disk_context == nullptr) {
     return FS_STATUS_ERROR_INVALID_ARGUMENT;
   }
-
   size_t current_offset = 0;
-
   while (current_offset
          < bitmap_context->bitmap_byte_length) {
     const size_t bytes_remaining =
@@ -157,17 +155,16 @@ fs_bitmap_mark_cluster_free(fs_bitmap_t* bitmap_context,
            chunk_size);
 
     const uint32_t target_cluster_index =
-      (uint32_t)(current_offset / FS_CLUSTER_SIZE);
+      FS_BITMAP_START_CLUSTER_INDEX
+      + (uint32_t)(current_offset / FS_CLUSTER_SIZE);
+
     const fs_status_t write_status = fs_disk_write_cluster(
       disk_context, target_cluster_index, write_buffer);
-
     if (write_status != FS_STATUS_OK) {
       return write_status;
     }
-
     current_offset += chunk_size;
   }
-
   return FS_STATUS_OK;
 }
 
@@ -178,9 +175,7 @@ fs_bitmap_deserialize_from_disk(fs_bitmap_t* bitmap_context,
       || disk_context == nullptr) {
     return FS_STATUS_ERROR_INVALID_ARGUMENT;
   }
-
   size_t current_offset = 0;
-
   while (current_offset
          < bitmap_context->bitmap_byte_length) {
     const size_t bytes_remaining =
@@ -190,21 +185,21 @@ fs_bitmap_deserialize_from_disk(fs_bitmap_t* bitmap_context,
                                         : bytes_remaining;
 
     uint8_t read_buffer[FS_CLUSTER_SIZE] = {0};
+
     const uint32_t source_cluster_index =
-      (uint32_t)(current_offset / FS_CLUSTER_SIZE);
+      FS_BITMAP_START_CLUSTER_INDEX
+      + (uint32_t)(current_offset / FS_CLUSTER_SIZE);
 
     const fs_status_t read_status = fs_disk_read_cluster(
       disk_context, source_cluster_index, read_buffer);
     if (read_status != FS_STATUS_OK) {
       return read_status;
     }
-
     memcpy(bitmap_context->bitmap_buffer + current_offset,
            read_buffer,
            chunk_size);
     current_offset += chunk_size;
   }
-
   return FS_STATUS_OK;
 }
 

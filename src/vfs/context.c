@@ -182,9 +182,30 @@ fs_vfs_open(fs_vfs_context_t* vfs_context,
   return FS_STATUS_OK;
 }
 
+[[nodiscard]] static fs_status_t vfs_sync_inode_size(
+  fs_vfs_context_t* vfs_context,
+  const fs_file_descriptor_t* file_descriptor_context) {
+  fs_inode_t inode_context = {0};
+  fs_status_t status =
+    fs_index_read_inode(vfs_context->index_context,
+                        file_descriptor_context->inode_id,
+                        &inode_context);
+  if (status != FS_STATUS_OK) {
+    return status;
+  }
+
+  inode_context.size =
+    file_descriptor_context->cached_file_size;
+
+  status = fs_index_write_inode(vfs_context->index_context,
+                                &inode_context);
+
+  return status;
+}
+
 [[nodiscard]] fs_status_t
 fs_vfs_close(fs_vfs_context_t* vfs_context,
-             int32_t file_descriptor) {
+             const int32_t file_descriptor) {
   if (vfs_context == nullptr) {
     return FS_STATUS_ERROR_INVALID_ARGUMENT;
   }
@@ -203,6 +224,13 @@ fs_vfs_close(fs_vfs_context_t* vfs_context,
 
   fs_status_t status = vfs_cache_flush_all(
     vfs_context, file_descriptor_context);
+
+  if (status != FS_STATUS_OK) {
+    return status;
+  }
+
+  status = vfs_sync_inode_size(vfs_context,
+                               file_descriptor_context);
 
   if (status != FS_STATUS_OK) {
     return status;

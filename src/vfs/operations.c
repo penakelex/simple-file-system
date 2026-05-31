@@ -311,13 +311,11 @@ fs_vfs_create_directory(fs_vfs_context_t* vfs_context,
   char directory_name_buffer[FS_MAX_FILENAME_LENGTH + 1] = {
     0};
   uint32_t parent_inode_id = 0;
-
   fs_status_t status =
     vfs_resolve_parent_and_name(vfs_context,
                                 directory_path,
                                 &parent_inode_id,
                                 directory_name_buffer);
-
   if (status != FS_STATUS_OK) {
     return status;
   }
@@ -327,7 +325,6 @@ fs_vfs_create_directory(fs_vfs_context_t* vfs_context,
     fs_index_allocate_inode(vfs_context->index_context,
                             FS_TYPE_DIRECTORY,
                             &new_directory_inode.id);
-
   if (status != FS_STATUS_OK) {
     return status;
   }
@@ -339,17 +336,9 @@ fs_vfs_create_directory(fs_vfs_context_t* vfs_context,
   status = fs_dir_create_new(vfs_context->dir_context,
                              new_directory_inode.id,
                              parent_inode_id);
-
   if (status != FS_STATUS_OK) {
     (void)fs_index_free_inode(vfs_context->index_context,
                               new_directory_inode.id);
-    return status;
-  }
-
-  status = fs_index_write_inode(vfs_context->index_context,
-                                &new_directory_inode);
-
-  if (status != FS_STATUS_OK) {
     return status;
   }
 

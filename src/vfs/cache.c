@@ -40,7 +40,7 @@ vfs_cache_find_least_recently_used_slot(
 [[nodiscard]] fs_status_t
 vfs_cache_flush_slot(fs_vfs_context_t* vfs_context,
                      fs_file_descriptor_t* file_descriptor,
-                     size_t cache_index) {
+                     const size_t cache_index) {
   if (vfs_context == nullptr
       || file_descriptor == nullptr) {
     return FS_STATUS_ERROR_INVALID_ARGUMENT;
@@ -66,17 +66,20 @@ vfs_cache_flush_slot(fs_vfs_context_t* vfs_context,
       file_descriptor->cached_logical_indices[cache_index]
     * FS_CLUSTER_SIZE;
 
+  size_t bytes_written = 0;
   status = fs_alloc_write_data(
     vfs_context->alloc_context,
     &inode_context,
     byte_offset,
     file_descriptor->cached_buffers[cache_index],
     FS_CLUSTER_SIZE,
-    &(size_t){0});
+    &bytes_written);
 
   if (status != FS_STATUS_OK) {
     return status;
   }
+
+  inode_context.size = file_descriptor->cached_file_size;
 
   file_descriptor->cache_slot_dirty[cache_index] = false;
   return fs_index_write_inode(vfs_context->index_context,
