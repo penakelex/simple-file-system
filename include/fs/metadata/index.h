@@ -36,3 +36,6 @@ fs_index_free_inode(fs_index_t* index_context,
 
 [[nodiscard]] fs_status_t
 fs_index_flush(fs_index_t* index_context);
+
+uint32_t
+fs_index_count_used_inodes(const fs_index_t* index_context);

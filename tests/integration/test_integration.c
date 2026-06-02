@@ -88,7 +88,7 @@ static void test_integration_full_workflow() {
   (void)test_teardown_full_environment(&environment);
 }
 
-static void test_integration_persistence(void) {
+static void test_integration_persistence() {
   test_environment_t environment = {0};
   const fs_status_t setup_status =
     test_setup_full_environment(&environment);
@@ -100,7 +100,7 @@ static void test_integration_persistence(void) {
 
   int32_t file_descriptor = -1;
   (void)fs_vfs_open(environment.vfs_context,
-                    "/persistent/data.bin",
+                    "/persistent/data.sfs",
                     FS_OPEN_CREATE | FS_OPEN_READ_WRITE,
                     &file_descriptor);
 
@@ -137,11 +137,11 @@ static void test_integration_persistence(void) {
 
   fs_inode_t file_info = {0};
   (void)fs_vfs_get_info(environment.vfs_context,
-                        "/persistent/data.bin",
+                        "/persistent/data.sfs",
                         &file_info);
 
   (void)fs_vfs_open(environment.vfs_context,
-                    "/persistent/data.bin",
+                    "/persistent/data.sfs",
                     FS_OPEN_READ_ONLY,
                     &file_descriptor);
 
@@ -172,7 +172,7 @@ static void test_integration_large_file() {
 
   int32_t file_descriptor = -1;
   (void)fs_vfs_open(environment.vfs_context,
-                    "/large_file.bin",
+                    "/large_file.sfs",
                     FS_OPEN_CREATE | FS_OPEN_READ_WRITE,
                     &file_descriptor);
 
@@ -200,7 +200,7 @@ static void test_integration_large_file() {
                      file_descriptor);
 
   (void)fs_vfs_open(environment.vfs_context,
-                    "/large_file.bin",
+                    "/large_file.sfs",
                     FS_OPEN_READ_ONLY,
                     &file_descriptor);
 

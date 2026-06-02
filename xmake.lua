@@ -7,6 +7,7 @@ add_includedirs("include", {public = true})
 
 if is_plat("windows") then
     add_defines("_CRT_SECURE_NO_WARNINGS")
+    add_syslinks("shell32")
 else
     add_defines("_POSIX_C_SOURCE=200809L", "_FILE_OFFSET_BITS=64")
 end
@@ -14,7 +15,8 @@ end
 target("simple-file-system")
     set_kind("binary")
     add_files("src/**.c")
-    add_files("cli/*.c")
+    add_files("cli/src/**.c")
+    add_includedirs("cli/include", {public = true})
 
 target("test-framework")
     set_kind("static")

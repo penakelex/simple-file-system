@@ -331,6 +331,65 @@ fs_dir_insert_entry(fs_dir_context_t* dir_context,
   return status;
 }
 
+[[nodiscard]] fs_status_t fs_dir_update_entry_inode(
+  fs_dir_context_t* dir_context,
+  const uint32_t directory_inode_id,
+  const char* entry_name,
+  const uint32_t new_target_inode_id) {
+  if (dir_context == nullptr || entry_name == nullptr) {
+    return FS_STATUS_ERROR_INVALID_ARGUMENT;
+  }
+
+  fs_inode_t directory_inode = {0};
+  fs_status_t status =
+    fs_index_read_inode(dir_context->index_context,
+                        directory_inode_id,
+                        &directory_inode);
+
+  if (status != FS_STATUS_OK) {
+    return status;
+  }
+
+  fs_dentry_t** entry_array = nullptr;
+  uint32_t entry_count = 0;
+  status = load_and_parse_directory_entries(
+    dir_context->alloc_context,
+    &directory_inode,
+    &entry_array,
+    &entry_count);
+
+  if (status != FS_STATUS_OK) {
+    return status;
+  }
+
+  bool entry_found = false;
+
+  for (uint32_t entry_index = 0; entry_index < entry_count;
+       ++entry_index) {
+    if (strcmp(entry_array[entry_index]->name, entry_name)
+        == 0) {
+      entry_array[entry_index]->inode_id =
+        new_target_inode_id;
+      entry_found = true;
+      break;
+    }
+  }
+
+  if (!entry_found) {
+    fs_dir_free_dentry_array(entry_array, entry_count);
+    return FS_STATUS_ERROR_OUT_OF_BOUNDS;
+  }
+
+  status =
+    save_directory_entries(dir_context->alloc_context,
+                           dir_context->index_context,
+                           &directory_inode,
+                           entry_array,
+                           entry_count);
+  fs_dir_free_dentry_array(entry_array, entry_count);
+  return status;
+}
+
 [[nodiscard]] fs_status_t
 fs_dir_remove_entry(fs_dir_context_t* dir_context,
                     const uint32_t directory_inode_id,

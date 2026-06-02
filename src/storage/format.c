@@ -57,7 +57,7 @@ struct fs_format_context {
 [[nodiscard]] fs_status_t
 fs_format_initialize_disk(fs_disk_t* disk_context,
                           uint32_t total_cluster_count) {
-  if (disk_context == nullptr || total_cluster_count == 0) {
+  if (disk_context == nullptr || total_cluster_count == 0U) {
     return FS_STATUS_ERROR_INVALID_ARGUMENT;
   }
 

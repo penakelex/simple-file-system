@@ -1,4 +1,5 @@
 #include "fs/metadata/index.h"
+#include "fs/storage/disk.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -161,7 +162,7 @@ fs_index_allocate_inode(fs_index_t* index_context,
     }
   }
 
-  return FS_STATUS_ERROR_OUT_OF_BOUNDS;
+  return FS_STATUS_ERROR_NO_SPACE;
 }
 
 [[nodiscard]] fs_status_t
@@ -220,4 +221,23 @@ fs_index_flush(fs_index_t* index_context) {
 
   index_context->is_dirty = false;
   return FS_STATUS_OK;
+}
+
+uint32_t fs_index_count_used_inodes(
+  const fs_index_t* index_context) {
+  if (index_context == nullptr) {
+    return 0U;
+  }
+
+  uint32_t used_count = 0U;
+
+  for (uint32_t inode_index = 0U;
+       inode_index < index_context->total_inodes;
+       ++inode_index) {
+    if (index_context->inode_table[inode_index].is_used) {
+      used_count++;
+    }
+  }
+
+  return used_count;
 }

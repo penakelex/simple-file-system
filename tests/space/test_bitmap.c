@@ -65,7 +65,7 @@ static void test_bitmap_find_free_sequential() {
   uint32_t free_cluster = UINT32_MAX;
   const fs_status_t status = fs_bitmap_find_free_cluster(
     bitmap_context, &free_cluster);
-  TEST_ASSERT_STATUS_EQUAL(FS_STATUS_ERROR_OUT_OF_BOUNDS,
+  TEST_ASSERT_STATUS_EQUAL(FS_STATUS_ERROR_NO_SPACE,
                            status,
                            "no free clusters should fail");
 
@@ -125,7 +125,7 @@ static void test_bitmap_boundary_conditions() {
   uint32_t free_cluster = UINT32_MAX;
   fs_status_t status = fs_bitmap_find_free_cluster(
     bitmap_context, &free_cluster);
-  TEST_ASSERT_STATUS_EQUAL(FS_STATUS_ERROR_OUT_OF_BOUNDS,
+  TEST_ASSERT_STATUS_EQUAL(FS_STATUS_ERROR_NO_SPACE,
                            status,
                            "all clusters used should fail");
 

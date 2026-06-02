@@ -252,7 +252,7 @@ static void test_dir_is_empty() {
   status = fs_dir_is_empty(
     environment.dir_context, new_dir_inode_id, &is_empty);
   TEST_ASSERT_STATUS_OK(status, "is_empty should succeed");
-  TEST_ASSERT(is_empty == false,
+  TEST_ASSERT(!is_empty,
               "directory with file should not be empty");
 
   (void)test_teardown_full_environment(&environment);

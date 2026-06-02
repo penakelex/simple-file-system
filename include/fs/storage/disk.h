@@ -8,7 +8,8 @@ typedef enum [[nodiscard]] {
   FS_STATUS_ERROR_INVALID_ARGUMENT,
   FS_STATUS_ERROR_OUT_OF_BOUNDS,
   FS_STATUS_ERROR_MEMORY_ALLOCATION,
-  FS_STATUS_ERROR_READ_ONLY
+  FS_STATUS_ERROR_READ_ONLY,
+  FS_STATUS_ERROR_NO_SPACE,
 } fs_status_t;
 
 typedef struct fs_disk fs_disk_t;

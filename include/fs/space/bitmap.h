@@ -32,8 +32,20 @@ fs_bitmap_destroy(fs_bitmap_t* bitmap_context);
 fs_bitmap_deserialize_from_disk(fs_bitmap_t* bitmap_context,
                                 fs_disk_t* disk_context);
 
+[[nodiscard]] bool
+fs_bitmap_is_cluster_free(const fs_bitmap_t* bitmap_context,
+                          const uint32_t cluster_index);
+
+[[nodiscard]] fs_status_t fs_bitmap_find_contiguous_free(
+  const fs_bitmap_t* bitmap_context,
+  const uint32_t cluster_count,
+  uint32_t* output_start_cluster);
+
 uint32_t fs_bitmap_get_total_cluster_count(
   const fs_bitmap_t* bitmap_context);
 
 size_t fs_bitmap_get_byte_length(
+  const fs_bitmap_t* bitmap_context);
+
+uint32_t fs_bitmap_count_used_clusters(
   const fs_bitmap_t* bitmap_context);

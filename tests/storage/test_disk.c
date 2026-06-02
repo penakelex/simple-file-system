@@ -3,7 +3,6 @@
 #include "fs/config.h"
 #include "fs/storage/disk.h"
 
-
 static void test_disk_create_and_close() {
   fs_disk_t* disk_context = nullptr;
   test_cleanup_disk_file(TEST_DISK_PATH);
@@ -22,7 +21,7 @@ static void test_disk_create_and_close() {
 
   const bool is_read_only =
     fs_disk_is_read_only(disk_context);
-  TEST_ASSERT(is_read_only == false,
+  TEST_ASSERT(!is_read_only,
               "disk should not be read-only");
 
   const uint32_t cluster_size = fs_disk_get_cluster_size();

@@ -322,6 +322,222 @@ static void test_alloc_read_beyond_size() {
   (void)test_teardown_full_environment(&environment);
 }
 
+static void test_alloc_truncate_single_indirect() {
+  test_environment_t environment = {0};
+  (void)test_setup_full_environment(&environment);
+
+  const uint32_t used_before =
+    fs_bitmap_count_used_clusters(
+      environment.bitmap_context);
+
+  uint32_t inode_id = 0U;
+  (void)fs_index_allocate_inode(
+    environment.index_context, FS_TYPE_REGULAR, &inode_id);
+
+  fs_inode_t inode_context = {0};
+  (void)fs_index_read_inode(
+    environment.index_context, inode_id, &inode_context);
+
+  const size_t file_size = FS_CLUSTER_SIZE * 20U;
+  uint8_t* write_buffer = calloc(1, file_size);
+  TEST_ASSERT(write_buffer != nullptr,
+              "allocation should succeed");
+
+  for (size_t byte_index = 0U; byte_index < file_size;
+       ++byte_index) {
+    write_buffer[byte_index] = (uint8_t)(byte_index % 251U);
+  }
+
+  size_t bytes_written = 0U;
+  const fs_status_t write_status =
+    fs_alloc_write_data(environment.alloc_context,
+                        &inode_context,
+                        0U,
+                        write_buffer,
+                        file_size,
+                        &bytes_written);
+  free(write_buffer);
+
+  TEST_ASSERT_STATUS_OK(
+    write_status,
+    "write across single indirect should succeed");
+  TEST_ASSERT(inode_context.single_indirect_cluster != 0U,
+              "single indirect should be allocated");
+
+  (void)fs_index_write_inode(environment.index_context,
+                             &inode_context);
+
+  const fs_status_t truncate_status =
+    fs_alloc_truncate_file(environment.alloc_context,
+                           &inode_context);
+  TEST_ASSERT_STATUS_OK(truncate_status,
+                        "truncate should succeed");
+
+  const uint32_t used_after = fs_bitmap_count_used_clusters(
+    environment.bitmap_context);
+
+  TEST_ASSERT_EQUAL_UINT(used_before,
+                         used_after,
+                         "no clusters should be leaked "
+                         "after single indirect truncate");
+
+  (void)test_teardown_full_environment(&environment);
+}
+
+static void test_alloc_truncate_double_indirect() {
+  test_environment_t environment = {0};
+  (void)test_setup_full_environment(&environment);
+
+  const uint32_t used_before =
+    fs_bitmap_count_used_clusters(
+      environment.bitmap_context);
+
+  uint32_t inode_id = 0U;
+  (void)fs_index_allocate_inode(
+    environment.index_context, FS_TYPE_REGULAR, &inode_id);
+
+  fs_inode_t inode_context = {0};
+  (void)fs_index_read_inode(
+    environment.index_context, inode_id, &inode_context);
+
+  const uint32_t cluster_count = 1536U;
+  const size_t file_size =
+    (size_t)cluster_count * FS_CLUSTER_SIZE;
+  uint8_t* write_buffer = calloc(1, file_size);
+  TEST_ASSERT(write_buffer != nullptr,
+              "allocation should succeed");
+
+  size_t bytes_written = 0U;
+  const fs_status_t write_status =
+    fs_alloc_write_data(environment.alloc_context,
+                        &inode_context,
+                        0U,
+                        write_buffer,
+                        file_size,
+                        &bytes_written);
+  free(write_buffer);
+
+  TEST_ASSERT_STATUS_OK(
+    write_status,
+    "write across double indirect should succeed");
+  TEST_ASSERT(inode_context.double_indirect_cluster != 0U,
+              "double indirect should be allocated");
+
+  (void)fs_index_write_inode(environment.index_context,
+                             &inode_context);
+
+  const fs_status_t truncate_status =
+    fs_alloc_truncate_file(environment.alloc_context,
+                           &inode_context);
+  TEST_ASSERT_STATUS_OK(truncate_status,
+                        "truncate should succeed");
+
+  const uint32_t used_after = fs_bitmap_count_used_clusters(
+    environment.bitmap_context);
+
+  TEST_ASSERT_EQUAL_UINT(used_before,
+                         used_after,
+                         "no clusters should be leaked "
+                         "after double indirect truncate");
+
+  (void)test_teardown_full_environment(&environment);
+}
+
+static void test_alloc_truncate_preserves_other_files() {
+  test_environment_t environment = {0};
+  (void)test_setup_full_environment(&environment);
+
+  uint32_t keep_inode_id = 0U;
+  (void)fs_index_allocate_inode(environment.index_context,
+                                FS_TYPE_REGULAR,
+                                &keep_inode_id);
+
+  fs_inode_t keep_inode = {0};
+  (void)fs_index_read_inode(
+    environment.index_context, keep_inode_id, &keep_inode);
+
+  const size_t keep_size = FS_CLUSTER_SIZE * 15U;
+  uint8_t* keep_buffer = calloc(1, keep_size);
+  TEST_ASSERT(keep_buffer != nullptr,
+              "allocation should succeed");
+  memset(keep_buffer, 0xAB, keep_size);
+
+  size_t bytes_written = 0U;
+  (void)fs_alloc_write_data(environment.alloc_context,
+                            &keep_inode,
+                            0U,
+                            keep_buffer,
+                            keep_size,
+                            &bytes_written);
+  free(keep_buffer);
+  (void)fs_index_write_inode(environment.index_context,
+                             &keep_inode);
+
+  uint32_t delete_inode_id = 0U;
+  (void)fs_index_allocate_inode(environment.index_context,
+                                FS_TYPE_REGULAR,
+                                &delete_inode_id);
+
+  fs_inode_t delete_inode = {0};
+  (void)fs_index_read_inode(environment.index_context,
+                            delete_inode_id,
+                            &delete_inode);
+
+  const size_t delete_size = FS_CLUSTER_SIZE * 20U;
+  uint8_t* delete_buffer = calloc(1, delete_size);
+  TEST_ASSERT(delete_buffer != nullptr,
+              "allocation should succeed");
+  memset(delete_buffer, 0xCD, delete_size);
+
+  bytes_written = 0U;
+  (void)fs_alloc_write_data(environment.alloc_context,
+                            &delete_inode,
+                            0U,
+                            delete_buffer,
+                            delete_size,
+                            &bytes_written);
+  free(delete_buffer);
+  (void)fs_index_write_inode(environment.index_context,
+                             &delete_inode);
+
+  const fs_status_t truncate_status =
+    fs_alloc_truncate_file(environment.alloc_context,
+                           &delete_inode);
+  TEST_ASSERT_STATUS_OK(
+    truncate_status,
+    "truncate of second file should succeed");
+
+  uint8_t verify_buffer[FS_CLUSTER_SIZE];
+  size_t bytes_read = 0U;
+  const fs_status_t read_status =
+    fs_alloc_read_data(environment.alloc_context,
+                       &keep_inode,
+                       0U,
+                       verify_buffer,
+                       FS_CLUSTER_SIZE,
+                       &bytes_read);
+
+  TEST_ASSERT_STATUS_OK(
+    read_status, "read of surviving file should succeed");
+  TEST_ASSERT_EQUAL_SIZE(FS_CLUSTER_SIZE,
+                         bytes_read,
+                         "full cluster should be readable");
+
+  bool all_bytes_correct = true;
+  for (size_t byte_index = 0U; byte_index < FS_CLUSTER_SIZE;
+       ++byte_index) {
+    if (verify_buffer[byte_index] != 0xAB) {
+      all_bytes_correct = false;
+      break;
+    }
+  }
+  TEST_ASSERT(
+    all_bytes_correct,
+    "surviving file data should be intact after truncate");
+
+  (void)test_teardown_full_environment(&environment);
+}
+
 int main() {
   TEST_SUITE_BEGIN("Allocation Layer");
   TEST_RUN(test_alloc_resolve_direct_clusters);
@@ -331,6 +547,9 @@ int main() {
   TEST_RUN(test_alloc_partial_read_write);
   TEST_RUN(test_alloc_truncate_file);
   TEST_RUN(test_alloc_read_beyond_size);
+  TEST_RUN(test_alloc_truncate_single_indirect);
+  TEST_RUN(test_alloc_truncate_double_indirect);
+  TEST_RUN(test_alloc_truncate_preserves_other_files);
   TEST_SUITE_END();
   TEST_EXIT();
 }

@@ -136,7 +136,7 @@ static void test_index_free_inode() {
 
   (void)fs_index_read_inode(
     environment.index_context, inode_id, &verify_inode);
-  TEST_ASSERT(verify_inode.is_used == false,
+  TEST_ASSERT(!verify_inode.is_used,
               "inode should be freed");
   TEST_ASSERT_EQUAL_UINT(
     0U, verify_inode.size, "size should be 0");
@@ -146,7 +146,7 @@ static void test_index_free_inode() {
   (void)test_teardown_full_environment(&environment);
 }
 
-static void test_index_persistence(void) {
+static void test_index_persistence() {
   test_environment_t environment = {0};
   const fs_status_t setup_status =
     test_setup_full_environment(&environment);

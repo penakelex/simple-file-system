@@ -17,7 +17,7 @@ fs_disk_create_or_open(fs_disk_t** output_disk_context,
                        const bool is_read_only) {
   if (output_disk_context == nullptr
       || storage_file_path == nullptr
-      || total_cluster_count == 0) {
+      || total_cluster_count == 0U) {
     return FS_STATUS_ERROR_INVALID_ARGUMENT;
   }
 

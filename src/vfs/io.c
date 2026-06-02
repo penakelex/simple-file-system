@@ -34,6 +34,7 @@ static void vfs_prefetch_next_cluster(
     current_logical_cluster_index + 1;
 
   int32_t existing_slot = -1;
+
   for (size_t cache_index = 0;
        cache_index < file_descriptor->cache_valid_count;
        ++cache_index) {
@@ -48,30 +49,8 @@ static void vfs_prefetch_next_cluster(
     return;
   }
 
-  int32_t free_slot_index = -1;
-  for (size_t cache_index = 0;
-       cache_index < FS_CACHE_CLUSTER_COUNT;
-       ++cache_index) {
-    bool slot_occupied = false;
-    for (size_t valid_index = 0;
-         valid_index < file_descriptor->cache_valid_count;
-         ++valid_index) {
-      if (file_descriptor
-            ->cached_logical_indices[valid_index]
-          == (uint32_t)cache_index) {
-        slot_occupied = true;
-        break;
-      }
-    }
-    if (!slot_occupied) {
-      free_slot_index = (int32_t)cache_index;
-      break;
-    }
-  }
-
-  if (free_slot_index == -1) {
-    return;
-  }
+  const int32_t free_slot_index =
+    (int32_t)file_descriptor->cache_valid_count;
 
   fs_inode_t inode_context = {0};
   if (fs_index_read_inode(vfs_context->index_context,

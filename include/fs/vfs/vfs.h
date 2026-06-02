@@ -29,6 +29,11 @@ fs_vfs_create_context(fs_vfs_context_t** output_vfs_context,
 fs_vfs_destroy_context(fs_vfs_context_t* vfs_context);
 
 [[nodiscard]] fs_status_t
+fs_vfs_create_symlink(fs_vfs_context_t* vfs_context,
+                      const char* target_path,
+                      const char* link_path);
+
+[[nodiscard]] fs_status_t
 fs_vfs_open(fs_vfs_context_t* vfs_context,
             const char* file_path,
             uint32_t open_flags,
@@ -48,6 +53,10 @@ fs_vfs_seek(fs_vfs_context_t* vfs_context,
 fs_vfs_get_info(fs_vfs_context_t* vfs_context,
                 const char* file_path,
                 fs_inode_t* output_inode_info);
+[[nodiscard]] fs_status_t
+fs_vfs_get_info_no_follow(fs_vfs_context_t* vfs_context,
+                          const char* file_path,
+                          fs_inode_t* output_inode_info);
 
 [[nodiscard]] fs_status_t
 fs_vfs_read(fs_vfs_context_t* vfs_context,

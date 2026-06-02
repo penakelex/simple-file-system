@@ -520,8 +520,7 @@ fs_alloc_write_data(fs_alloc_context_t* alloc_context,
 
     uint8_t cluster_buffer[FS_CLUSTER_SIZE] = {0};
 
-    if (chunk_size < FS_CLUSTER_SIZE
-        && offset_in_cluster > 0) {
+    if (chunk_size < FS_CLUSTER_SIZE) {
       status =
         fs_disk_read_cluster(alloc_context->disk_context,
                              physical_cluster_index,
@@ -561,6 +560,47 @@ fs_alloc_write_data(fs_alloc_context_t* alloc_context,
   return FS_STATUS_OK;
 }
 
+static void
+free_indirect_blocks(fs_alloc_context_t* alloc_context,
+                     const uint32_t indirect_cluster,
+                     const uint32_t depth) {
+  if (indirect_cluster == 0U) {
+    return;
+  }
+
+  const uint32_t pointers_per_cluster =
+    FS_CLUSTER_SIZE / sizeof(uint32_t);
+  uint32_t
+    pointers_buffer[FS_CLUSTER_SIZE / sizeof(uint32_t)];
+
+  const fs_status_t read_status =
+    fs_disk_read_cluster(alloc_context->disk_context,
+                         indirect_cluster,
+                         pointers_buffer);
+
+  if (read_status != FS_STATUS_OK) {
+    return;
+  }
+
+  for (uint32_t index = 0U; index < pointers_per_cluster;
+       ++index) {
+    if (pointers_buffer[index] != 0U) {
+      if (depth == 1U) {
+        (void)fs_bitmap_mark_cluster_free(
+          alloc_context->bitmap_context,
+          pointers_buffer[index]);
+      } else {
+        free_indirect_blocks(alloc_context,
+                             pointers_buffer[index],
+                             depth - 1U);
+      }
+    }
+  }
+
+  (void)fs_bitmap_mark_cluster_free(
+    alloc_context->bitmap_context, indirect_cluster);
+}
+
 [[nodiscard]] fs_status_t
 fs_alloc_truncate_file(fs_alloc_context_t* alloc_context,
                        fs_inode_t* inode_context) {
@@ -569,37 +609,40 @@ fs_alloc_truncate_file(fs_alloc_context_t* alloc_context,
     return FS_STATUS_ERROR_INVALID_ARGUMENT;
   }
 
-  inode_context->size = 0;
-  inode_context->cluster_count = 0;
+  inode_context->size = 0U;
+  inode_context->cluster_count = 0U;
 
-  for (uint32_t i = 0; i < FS_DIRECT_POINTERS; ++i) {
-    if (inode_context->direct_clusters[i] != 0) {
+  for (uint32_t i = 0U; i < FS_DIRECT_POINTERS; ++i) {
+    if (inode_context->direct_clusters[i] != 0U) {
       (void)fs_bitmap_mark_cluster_free(
         alloc_context->bitmap_context,
         inode_context->direct_clusters[i]);
-      inode_context->direct_clusters[i] = 0;
+      inode_context->direct_clusters[i] = 0U;
     }
   }
 
-  if (inode_context->single_indirect_cluster != 0) {
-    (void)fs_bitmap_mark_cluster_free(
-      alloc_context->bitmap_context,
-      inode_context->single_indirect_cluster);
-    inode_context->single_indirect_cluster = 0;
+  if (inode_context->single_indirect_cluster != 0U) {
+    free_indirect_blocks(
+      alloc_context,
+      inode_context->single_indirect_cluster,
+      1U);
+    inode_context->single_indirect_cluster = 0U;
   }
 
-  if (inode_context->double_indirect_cluster != 0) {
-    (void)fs_bitmap_mark_cluster_free(
-      alloc_context->bitmap_context,
-      inode_context->double_indirect_cluster);
-    inode_context->double_indirect_cluster = 0;
+  if (inode_context->double_indirect_cluster != 0U) {
+    free_indirect_blocks(
+      alloc_context,
+      inode_context->double_indirect_cluster,
+      2U);
+    inode_context->double_indirect_cluster = 0U;
   }
 
-  if (inode_context->triple_indirect_cluster != 0) {
-    (void)fs_bitmap_mark_cluster_free(
-      alloc_context->bitmap_context,
-      inode_context->triple_indirect_cluster);
-    inode_context->triple_indirect_cluster = 0;
+  if (inode_context->triple_indirect_cluster != 0U) {
+    free_indirect_blocks(
+      alloc_context,
+      inode_context->triple_indirect_cluster,
+      3U);
+    inode_context->triple_indirect_cluster = 0U;
   }
 
   return fs_index_write_inode(alloc_context->index_context,

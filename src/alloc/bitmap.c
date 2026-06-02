@@ -1,5 +1,6 @@
 #include "fs/space/bitmap.h"
 #include "fs/config.h"
+#include "fs/storage/disk.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -13,7 +14,7 @@ struct fs_bitmap {
 fs_bitmap_create(fs_bitmap_t** output_bitmap_context,
                  uint32_t total_cluster_count) {
   if (output_bitmap_context == nullptr
-      || total_cluster_count == 0) {
+      || total_cluster_count == 0U) {
     return FS_STATUS_ERROR_INVALID_ARGUMENT;
   }
 
@@ -78,7 +79,7 @@ fs_bitmap_destroy(fs_bitmap_t* bitmap_context) {
 
         if (candidate_cluster_index
             >= bitmap_context->total_cluster_count) {
-          return FS_STATUS_ERROR_OUT_OF_BOUNDS;
+          return FS_STATUS_ERROR_NO_SPACE;
         }
 
         if (!((current_byte >> bit_offset) & 1U)) {
@@ -90,7 +91,7 @@ fs_bitmap_destroy(fs_bitmap_t* bitmap_context) {
     }
   }
 
-  return FS_STATUS_ERROR_OUT_OF_BOUNDS;
+  return FS_STATUS_ERROR_NO_SPACE;
 }
 
 [[nodiscard]] fs_status_t
@@ -203,6 +204,58 @@ fs_bitmap_deserialize_from_disk(fs_bitmap_t* bitmap_context,
   return FS_STATUS_OK;
 }
 
+bool fs_bitmap_is_cluster_free(
+  const fs_bitmap_t* bitmap_context,
+  const uint32_t cluster_index) {
+  if (bitmap_context == nullptr
+      || cluster_index
+           >= bitmap_context->total_cluster_count) {
+    return false;
+  }
+
+  const size_t byte_index = cluster_index / 8;
+  const uint32_t bit_offset = cluster_index % 8;
+  return ((bitmap_context->bitmap_buffer[byte_index]
+           >> bit_offset)
+          & 1U)
+         == 0U;
+}
+
+fs_status_t fs_bitmap_find_contiguous_free(
+  const fs_bitmap_t* bitmap_context,
+  const uint32_t cluster_count,
+  uint32_t* output_start_cluster) {
+  if (bitmap_context == nullptr || cluster_count == 0
+      || output_start_cluster == nullptr) {
+    return FS_STATUS_ERROR_INVALID_ARGUMENT;
+  }
+
+  uint32_t consecutive_count = 0;
+  uint32_t start_index = 0;
+
+  for (uint32_t cluster_index = 0;
+       cluster_index < bitmap_context->total_cluster_count;
+       ++cluster_index) {
+    if (fs_bitmap_is_cluster_free(bitmap_context,
+                                  cluster_index)) {
+      if (consecutive_count == 0) {
+        start_index = cluster_index;
+      }
+
+      consecutive_count++;
+
+      if (consecutive_count == cluster_count) {
+        *output_start_cluster = start_index;
+        return FS_STATUS_OK;
+      }
+    } else {
+      consecutive_count = 0;
+    }
+  }
+
+  return FS_STATUS_ERROR_NO_SPACE;
+}
+
 uint32_t fs_bitmap_get_total_cluster_count(
   const fs_bitmap_t* bitmap_context) {
   return bitmap_context != nullptr
@@ -215,4 +268,28 @@ size_t fs_bitmap_get_byte_length(
   return bitmap_context != nullptr
            ? bitmap_context->bitmap_byte_length
            : 0;
+}
+
+uint32_t fs_bitmap_count_used_clusters(
+  const fs_bitmap_t* bitmap_context) {
+  if (bitmap_context == nullptr) {
+    return 0U;
+  }
+
+  uint32_t used_count = 0U;
+
+  for (uint32_t cluster_index = 0U;
+       cluster_index < bitmap_context->total_cluster_count;
+       ++cluster_index) {
+    const size_t byte_index = cluster_index / 8U;
+    const uint32_t bit_offset = cluster_index % 8U;
+
+    if ((bitmap_context->bitmap_buffer[byte_index]
+         >> bit_offset)
+        & 1U) {
+      used_count++;
+    }
+  }
+
+  return used_count;
 }

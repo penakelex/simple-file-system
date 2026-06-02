@@ -4,7 +4,7 @@
 static void
 vfs_normalize_path_component(char* path_buffer,
                              size_t buffer_size) {
-  if (path_buffer == nullptr || buffer_size == 0) {
+  if (path_buffer == nullptr || buffer_size == 0U) {
     return;
   }
 
@@ -40,7 +40,7 @@ vfs_normalize_path_component(char* path_buffer,
 [[nodiscard]] static fs_status_t
 vfs_resolve_relative_components(char* normalized_path,
                                 size_t buffer_size) {
-  if (normalized_path == nullptr || buffer_size == 0) {
+  if (normalized_path == nullptr || buffer_size == 0U) {
     return FS_STATUS_ERROR_INVALID_ARGUMENT;
   }
 

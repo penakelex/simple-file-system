@@ -27,6 +27,12 @@ fs_dir_insert_entry(fs_dir_context_t* dir_context,
                     const char* entry_name,
                     const uint32_t target_inode_id);
 
+[[nodiscard]] fs_status_t fs_dir_update_entry_inode(
+  fs_dir_context_t* dir_context,
+  const uint32_t directory_inode_id,
+  const char* entry_name,
+  const uint32_t new_target_inode_id);
+
 [[nodiscard]] fs_status_t
 fs_dir_remove_entry(fs_dir_context_t* dir_context,
                     const uint32_t directory_inode_id,

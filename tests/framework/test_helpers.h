@@ -9,8 +9,8 @@
 #include "fs/storage/superblock.h"
 #include "fs/vfs/vfs.h"
 
-#define TEST_DISK_PATH "test_disk.bin"
-#define TEST_CLUSTER_COUNT 256U
+#define TEST_DISK_PATH "test_disk.sfs"
+#define TEST_CLUSTER_COUNT 2048U
 
 typedef struct test_environment {
   fs_disk_t* disk_context;

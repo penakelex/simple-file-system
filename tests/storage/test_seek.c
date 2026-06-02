@@ -3,7 +3,7 @@
 
 #define SEEK_TEST_CHUNK_SIZE 4096U
 #define SEEK_TEST_TOTAL_CHUNKS 256U
-#define SEEK_TEST_FILE_PATH "test_seek_validation.bin"
+#define SEEK_TEST_FILE_PATH "test_seek_validation.sfs"
 
 static void
 verify_file_position(FILE* file_stream,

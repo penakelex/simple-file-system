@@ -5,7 +5,7 @@
 fs_superblock_initialize(fs_superblock_t* output_superblock,
                          uint32_t total_cluster_count) {
   if (output_superblock == nullptr
-      || total_cluster_count == 0) {
+      || total_cluster_count == 0U) {
     return FS_STATUS_ERROR_INVALID_ARGUMENT;
   }
 
